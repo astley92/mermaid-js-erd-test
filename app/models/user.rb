@@ -19,4 +19,5 @@
 #
 class User < ApplicationRecord
   belongs_to :account
+  has_one :address
 end
