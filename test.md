@@ -42,3 +42,4 @@ USER {
 
 ACCOUNT ||--o{ USER : ""
 ADDRESS ||--o{ USER : ""
+```

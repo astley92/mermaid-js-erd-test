@@ -1,3 +1,4 @@
+require("byebug")
 require_relative("config/environment.rb")
 
 class Node
@@ -80,9 +81,15 @@ class EdgeDecorator
 end
 
 Rails.application.eager_load!
-
+IGNORED_CLASSES = [
+  ApplicationRecord,
+  *ActionMailbox.constants.map {"ActionMailbox::#{_1}".constantize},
+  *ActionText.constants.map {"ActionText::#{_1}".constantize},
+  *ActiveStorage.constants.map {"ActiveStorage::#{_1}".constantize},
+]
+puts "Ignoring classes: #{IGNORED_CLASSES.map(&:name).join(", ")}"
 edges = []
-model_klasses = ApplicationRecord.descendants
+model_klasses = ActiveRecord::Base.descendants.reject { |model_klass| IGNORED_CLASSES.include? model_klass }
 nodes = model_klasses.map { |model_klass| Node.new(model_klass) }
 nodes.each do |node|
   node.associations.each do |association|
@@ -90,6 +97,7 @@ nodes.each do |node|
     # Perhaps giving users a way to specify what classes can be associated
     # and warning them if they are not specified.
     next if association.polymorphic?
+    next if IGNORED_CLASSES.include? association.klass
 
     associated_node = nodes.detect { |n| n.model_klass.name == association.klass.name }
     raise "Node not found for #{association.klass.name}" unless associated_node
@@ -116,5 +124,6 @@ File.open("test.md", "w") do |f|
   edges.each do |edge|
     f.write(edge.decorate.to_relation)
   end
+  f.write("```\n")
 end
 
